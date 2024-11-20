@@ -29,4 +29,13 @@ The `echo: false` option disables the printing of code (only output is displayed
 1 +1
 ```
 
-Pakiety sa syuper.
+```{r}
+library(tidyverse)
+library(nycflights13)
+```
+
+```{r}
+df <- flights
+df %>% ggplot(mapping=aes(x=distance)) +
+  geom_density()
+```
