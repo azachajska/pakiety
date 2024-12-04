@@ -1,41 +1,74 @@
 ---
-title: "sprawko1"
+title: "Czy profil użytkownika wpływa na aktywność w aplikacji?"
+author: "Aleksandra Zachajska, Konstanty Andrzejczak"
 format: html
-editor: visual
+execute: 
+  echo: false #niewidoczność kodu w wcałym pliku
 ---
 
-## Quarto
-
-Quarto enables you to weave together content and executable code into a finished document. To learn more about Quarto see <https://quarto.org>.
-
-## Running Code
-
-When you click the **Render** button a document will be generated that includes both content and the output of embedded code. You can embed code like this:
-
 ```{r}
-1 + 1
+# Załadowanie bibliotek
+library(tidyverse)
+
+#Przypisanie danych
+dane <- read.csv("duolingo_dataset.csv")
 ```
 
-You can add options to executable code like this
+# Wprowadzenie
+
+Rozwój technologii mobilnych i powszechna dostępność urządzeń elektronicznych znacząco wpłynęły na sposób, w jaki ludzie zdobywają wiedzę i rozwijają swoje umiejętności. Aplikacje mobilne, takie jak Duolingo, stanowią doskonały przykład tej rewolucji edukacyjnej, umożliwiając użytkownikom naukę języków obcych w sposób elastyczny, dostosowany do ich indywidualnych potrzeb i harmonogramu. Od momentu wprowadzenia na rynek w 2011 roku, Duolingo zdobyło ogromną popularność na całym świecie, przyciągając miliony użytkowników, którzy regularnie korzystają z aplikacji, aby doskonalić swoje umiejętności językowe.
+
+Za sukcesem aplikacji stoi nie tylko jej innowacyjna metoda nauki, oparta na gamifikacji, ale także zdolność do dostosowania się do różnorodnych potrzeb użytkowników. Aplikacja stała się szczególnie popularna w Stanach Zjednoczonych, Europie i Azji, a jej użytkownicy reprezentują szeroką gamę krajów, kultur oraz poziomów zaawansowania. Zjawisko to skłania do refleksji nad tym, w jaki sposób profil użytkownika – obejmujący takie czynniki jak wiek, kraj pochodzenia, płeć czy wcześniejsze doświadczenia z językiem – może wpływać na jego zaangażowanie oraz efektywność nauki. Celem niniejszej pracy jest zbadanie, w jaki sposób różne cechy użytkowników aplikacji Duolingo kształtują ich aktywność, motywację oraz postępy w nauce, a także jakie czynniki mogą decydować o sukcesie w tym procesie edukacyjnym.
+
+## Dane
+
+Aby przeprowadzić tę analizę, posłużymy się danymi pochodzącymi z \[...\], które zawierają szczegółowe informacje na temat użytkowników, ich aktywności w aplikacji, liczby rozpoczętych i zakończonych lekcji, a także poziomu ich zaangażowania w naukę.
+
+Dane te zostały zebrane \[daty kiedy co i jak\].
+
+# Kto sięga po aplikację?
+
+```{r}
+
+
+
+# Załadowanie bibliotek
+library(tidyverse)
+
+#Przypisanie danych
+dane <- read.csv("duolingo_dataset.csv")
+unikalne_kraje <- dane %>% 
+  select(country) %>% 
+  distinct()
+
+# Zmiana nazw krajów na pełne nazwy przy użyciu słownika
+slownik <- c("FR" = "Francja", "DE" = "Niemcy", "US" = "Stany Zjednoczone", "PL" = "Polska", "GB" = "Wielka Brytania")
+
+# Użycie slownika do zamiany kodów na pełne nazwy
+kraje <- unikalne_kraje$country
+kraje_z_nazwami <- slownik[kraje]
+
+# Utworzenie ramki danych z pełnymi nazwami krajów
+unikalne_kraje$country <- kraje_z_nazwami
+print(unikalne_kraje)
+
+```
+
+## Wprowadzenie
+
+We wprowadzeniu napisać z jakich dat są zebrane dane i zaznaczyć daty widoczne w zestawieniu kiedy uczestnicy podlegający spisowi rozpoczeli korzystanie z aplikacji odnieść się do daty wprowadzenia aplikacji na rynek i mniej więcej kiedy aplikacja stała się popularna można dołaczyć dane dotyczące dynamiki wejścia na rynki w różnych krajac w szczególnosci tych uwzględnionych w zestawieniu
 
 ```{r}
 #| echo: false
 2 * 2
 ```
 
-The `echo: false` option disables the printing of code (only output is displayed).
+## Kto sięga po aplikację (ogólna charakterysyka użytkowników)?
 
-```{r}
-1 +1
-```
+Analiza jakie kraje są brane pod uagę w kazdym z nich możemy zestawić ile jest osób zatrudnionych w jakim wymiarze i ilu w jakim wieku jakiej płci (ogólnie info)
 
-```{r}
-library(tidyverse)
-library(nycflights13)
-```
+\## Profil użytkownika
 
-```{r}
-df <- flights
-df %>% ggplot(mapping=aes(x=distance)) +
-  geom_density()
-```
+Analiza profilu użytkowników dokładna pod katem używania apliakcji tu zestawić: -\> zaangażowanie -\> motywację -\> czy miał już stycznosc z językiem -\> poziom deklarowany vs wyznaczony w aplikacji
+
+\## Dynamika rozwoju przy użyciu aplikacji -\> Zestawienie liczby rozpoczętych lekcji w zestawieniu z zakończonymi -\>liczba dni na pltformie vs liczba aktywnych dni -\> najdłuższa seria
