@@ -1,48 +1,149 @@
 ---
 title: "Czy profil użytkownika wpływa na aktywność w aplikacji?"
 author: "Aleksandra Zachajska, Konstanty Andrzejczak"
-format: html
+format: pdf
 execute: 
   echo: false #niewidoczność kodu w wcałym pliku
 ---
 
 ```{r}
+#| include: false # wylaczenie wynikow 
 # Załadowanie bibliotek
+library(ggplot2)
+library(dplyr)
+library(readr)
 library(tidyverse)
 
 #Przypisanie danych
-dane <- read.csv("duolingo_dataset.csv")
+duolingo_data <- read_csv("duolingo_dataset.csv")
 ```
 
-# Wprowadzenie
+## Wprowadzenie
+
+$$
+\sin(x)
+$$
 
 Rozwój technologii mobilnych i powszechna dostępność urządzeń elektronicznych znacząco wpłynęły na sposób, w jaki ludzie zdobywają wiedzę i rozwijają swoje umiejętności. Aplikacje mobilne, takie jak Duolingo, stanowią doskonały przykład tej rewolucji edukacyjnej, umożliwiając użytkownikom naukę języków obcych w sposób elastyczny, dostosowany do ich indywidualnych potrzeb i harmonogramu. Od momentu wprowadzenia na rynek w 2011 roku, Duolingo zdobyło ogromną popularność na całym świecie, przyciągając miliony użytkowników, którzy regularnie korzystają z aplikacji, aby doskonalić swoje umiejętności językowe.
 
 Za sukcesem aplikacji stoi nie tylko jej innowacyjna metoda nauki, oparta na gamifikacji, ale także zdolność do dostosowania się do różnorodnych potrzeb użytkowników. Aplikacja stała się szczególnie popularna w Stanach Zjednoczonych, Europie i Azji, a jej użytkownicy reprezentują szeroką gamę krajów, kultur oraz poziomów zaawansowania. Zjawisko to skłania do refleksji nad tym, w jaki sposób profil użytkownika – obejmujący takie czynniki jak wiek, kraj pochodzenia, płeć czy wcześniejsze doświadczenia z językiem – może wpływać na jego zaangażowanie oraz efektywność nauki. Celem niniejszej pracy jest zbadanie, w jaki sposób różne cechy użytkowników aplikacji Duolingo kształtują ich aktywność, motywację oraz postępy w nauce, a także jakie czynniki mogą decydować o sukcesie w tym procesie edukacyjnym.
 
-## Dane
+### Dane
 
 Aby przeprowadzić tę analizę, posłużymy się danymi pochodzącymi z \[...\], które zawierają szczegółowe informacje na temat użytkowników, ich aktywności w aplikacji, liczby rozpoczętych i zakończonych lekcji, a także poziomu ich zaangażowania w naukę.
 
 Dane te zostały zebrane \[daty kiedy co i jak\].
 
-# Kto sięga po aplikację?
+```{r}
+#| include: false # wylaczenie wynikow 
+# Konwersja kolumny 'duolingo_start_date' na typ Date
+duolingo_data$duolingo_start_date <- as.Date(duolingo_data$duolingo_start_date, format = "%Y-%m-%dT%H:%M:%SZ")
+
+# Ekstrakcja roku rozpoczęcia korzystania z aplikacji
+duolingo_data <- duolingo_data %>%
+  mutate(start_year = format(duolingo_start_date, "%Y")) %>%
+  filter(!is.na(start_year)) # Usunięcie wierszy bez dat
+
+# Grupowanie danych według roku i liczenie liczby użytkowników
+popularity_by_year <- duolingo_data %>%
+  group_by(start_year) %>%
+  summarise(user_count = n()) %>%
+  arrange(start_year)
+
+# Wykres przedstawiający wzrost popularności Duolingo
+ggplot(popularity_by_year, aes(x = as.numeric(start_year), y = user_count)) +
+  geom_line(color = "blue", size = 1) +
+  geom_point(color = "red", size = 3) +
+  labs(
+    title = "Wzrost popularności Duolingo w czasie",
+    x = "Rok rozpoczęcia korzystania z aplikacji",
+    y = "Liczba nowych użytkowników"
+  ) +
+  theme_minimal() +
+  scale_x_continuous(breaks = as.numeric(popularity_by_year$start_year))
+
+```
 
 ```{r}
+# Wczytanie potrzebnych bibliotek
+library(ggplot2)
+library(dplyr)
+library(readr)
 
+# Wczytanie danych z pliku CSV
+duolingo_data <- read_csv("duolingo_dataset.csv")
 
+# Konwersja kolumny 'duolingo_start_date' na typ Date
+duolingo_data$duolingo_start_date <- as.Date(duolingo_data$duolingo_start_date, format = "%Y-%m-%dT%H:%M:%SZ")
 
-# Załadowanie bibliotek
-library(tidyverse)
+# Ekstrakcja roku rozpoczęcia korzystania z aplikacji
+duolingo_data <- duolingo_data %>%
+  mutate(
+    start_year = format(duolingo_start_date, "%Y"),
+    country = country
+  ) %>%
+  filter(!is.na(start_year) & !is.na(country)) # Usunięcie brakujących wartości
 
-#Przypisanie danych
-dane <- read.csv("duolingo_dataset.csv")
-unikalne_kraje <- dane %>% 
+# Grupowanie danych według roku i kraju
+popularity_by_year_country <- duolingo_data %>%
+  group_by(start_year, country) %>%
+  summarise(user_count = n(), .groups = "drop") %>%
+  arrange(start_year)
+
+# Wykres pokazujący wzrost popularności Duolingo w różnych krajach
+ggplot(popularity_by_year_country, aes(x = as.numeric(start_year), y = user_count, color = country)) +
+  geom_line(size = 1) +
+  geom_point(size = 2) +
+  labs(
+    title = "Wzrost popularności Duolingo w różnych krajach",
+    x = "Rok rozpoczęcia korzystania z aplikacji",
+    y = "Liczba nowych użytkowników",
+    color = "Kraj"
+  ) +
+  theme_minimal() 
+  scale_x_continuous(breaks = as.numeric(unique(popularity_by_year_country$start_year)))
+```
+
+```         
+```
+
+```{r}
+# Wczytanie potrzebnych bibliotek
+library(ggplot2)
+library(dplyr)
+library(readr)
+
+# Wczytanie danych z pliku CSV
+duolingo_data <- read_csv("duolingo_dataset.csv")
+
+# Analiza platform używanych przez użytkowników
+platform_usage <- duolingo_data %>%
+  group_by(duolingo_platform) %>%
+  summarise(user_count = n(), .groups = "drop")
+
+# Wykres pokazujący platformy użytkowników
+ggplot(platform_usage, aes(x = reorder(duolingo_platform, -user_count), y = user_count, fill = duolingo_platform)) +
+  geom_bar(stat = "identity") +
+  labs(
+    title = "Liczba użytkowników korzystających z różnych platform",
+    x = "Platforma",
+    y = "Liczba użytkowników"
+  ) +
+  theme_minimal() +
+  theme(legend.position = "none") +
+  coord_flip()
+
+```
+
+## Kto sięga po aplikację?
+
+```{r}
+unikalne_kraje <- duolingo_data %>% 
   select(country) %>% 
   distinct()
 
 # Zmiana nazw krajów na pełne nazwy przy użyciu słownika
-slownik <- c("FR" = "Francja", "DE" = "Niemcy", "US" = "Stany Zjednoczone", "PL" = "Polska", "GB" = "Wielka Brytania")
+slownik <- c("JP" = "Japonia", "RU" = "Rosja", "CO" =  "Kolumbia", "TW" = "Tajwan", "GB" = "Wielka Brytania", "BR" = "Brazylia", "MX" = "Meksyk", "DE" = "Niemcy", "FR" = "Francja", "US" = "Stany Zjednoczone")
 
 # Użycie slownika do zamiany kodów na pełne nazwy
 kraje <- unikalne_kraje$country
@@ -53,6 +154,108 @@ unikalne_kraje$country <- kraje_z_nazwami
 print(unikalne_kraje)
 
 ```
+
+```{r}
+# Czyszczenie danych - usunięcie "no response" i zastąpienie ich NA
+duolingo_data_clean <- duolingo_data %>%
+  mutate(
+    age = ifelse(age == "no response", NA, age),
+    employment_status = ifelse(employment_status == "no response", NA, employment_status),
+    gender = ifelse(gender == "no response", NA, gender)
+  ) %>%
+  filter(!is.na(age) & !is.na(employment_status) & !is.na(gender) & !is.na(country))
+
+# Analiza: liczba osób w różnych wymiarach zatrudnienia w każdym kraju
+employment_by_country <- duolingo_data_clean %>%
+  group_by(country, employment_status) %>%
+  summarise(count = n(), .groups = "drop")
+
+# Analiza: liczba osób w różnych grupach wiekowych w każdym kraju
+age_by_country <- duolingo_data_clean %>%
+  group_by(country, age) %>%
+  summarise(count = n(), .groups = "drop")
+
+# Analiza: liczba osób według płci w każdym kraju
+gender_by_country <- duolingo_data_clean %>%
+  group_by(country, gender) %>%
+  summarise(count = n(), .groups = "drop")
+
+# Wykres 1: Zatrudnienie w każdym kraju
+employment_plot <- ggplot(employment_by_country, aes(x = country, y = count, fill = employment_status)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(
+    title = "Liczba osób według statusu zatrudnienia w różnych krajach",
+    x = "Kraj",
+    y = "Liczba osób",
+    fill = "Status zatrudnienia"
+  ) +
+  theme_minimal() +
+  coord_flip()
+
+# Wykres 2: Grupy wiekowe w każdym kraju
+age_plot <- ggplot(age_by_country, aes(x = country, y = count, fill = age)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(
+    title = "Liczba osób w różnych grupach wiekowych w różnych krajach",
+    x = "Kraj",
+    y = "Liczba osób",
+    fill = "Grupa wiekowa"
+  ) +
+  theme_minimal() +
+  coord_flip()
+
+# Wykres 3: Płeć w każdym kraju
+gender_plot <- ggplot(gender_by_country, aes(x = country, y = count, fill = gender)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(
+    title = "Liczba osób według płci w różnych krajach",
+    x = "Kraj",
+    y = "Liczba osób",
+    fill = "Płeć"
+  ) +
+  theme_minimal() +
+  coord_flip()
+
+# Wyświetlenie wykresów
+print(age_plot)
+print(gender_plot)
+
+```
+
+```{r}
+# Czyszczenie danych - usunięcie "No Response" i zastąpienie ich NA
+duolingo_data_clean <- duolingo_data %>%
+  mutate(
+    age = ifelse(age == "No Response", NA, age),
+    employment_status = ifelse(employment_status == "No Response", NA, employment_status),
+    gender = ifelse(gender == "No Response", NA, gender)
+  ) %>%
+  filter(!is.na(age) & !is.na(employment_status) & !is.na(gender) & !is.na(country))
+
+# Analiza: liczba osób w różnych wymiarach zatrudnienia w każdym kraju
+employment_by_country <- duolingo_data_clean %>%
+  filter(!is.na(employment_status)) %>%  # Usunięcie braków w zatrudnieniu
+  group_by(country, employment_status) %>%
+  summarise(count = n(), .groups = "drop")
+
+# Wykres 1: Zatrudnienie w każdym kraju
+employment_plot <- ggplot(employment_by_country, aes(x = country, y = count, fill = employment_status)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(
+    title = "Liczba osób według statusu zatrudnienia w różnych krajach",
+    x = "Kraj",
+    y = "Liczba osób",
+    fill = "Status zatrudnienia"
+  ) +
+  theme_minimal() +
+  coord_flip()
+
+# Wyświetlenie wykresu
+print(employment_plot)
+
+```
+
+# Śmietnik
 
 ## Wprowadzenie
 
