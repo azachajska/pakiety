@@ -3,7 +3,7 @@ title: "Czy profil użytkownika wpływa na aktywność w aplikacji?"
 author: "Aleksandra Zachajska, Konstanty Andrzejczak"
 format: pdf
 execute: 
-  echo: false #niewidoczność kodu w wcałym pliku
+  echo: false #niewidoczność kodu w całym pliku
 ---
 
 ```{r}
@@ -13,16 +13,16 @@ library(ggplot2)
 library(dplyr)
 library(readr)
 library(tidyverse)
+library(rnaturalearth)
+library(rnaturalearthdata)
+library(sf)
 
 #Przypisanie danych
 duolingo_data <- read_csv("duolingo_dataset.csv")
 ```
 
-## Wprowadzenie
 
-$$
-\sin(x)
-$$
+## Wprowadzenie
 
 Rozwój technologii mobilnych i powszechna dostępność urządzeń elektronicznych znacząco wpłynęły na sposób, w jaki ludzie zdobywają wiedzę i rozwijają swoje umiejętności. Aplikacje mobilne, takie jak Duolingo, stanowią doskonały przykład tej rewolucji edukacyjnej, umożliwiając użytkownikom naukę języków obcych w sposób elastyczny, dostosowany do ich indywidualnych potrzeb i harmonogramu. Od momentu wprowadzenia na rynek w 2011 roku, Duolingo zdobyło ogromną popularność na całym świecie, przyciągając miliony użytkowników, którzy regularnie korzystają z aplikacji, aby doskonalić swoje umiejętności językowe.
 
@@ -33,6 +33,10 @@ Za sukcesem aplikacji stoi nie tylko jej innowacyjna metoda nauki, oparta na gam
 Aby przeprowadzić tę analizę, posłużymy się danymi pochodzącymi z \[...\], które zawierają szczegółowe informacje na temat użytkowników, ich aktywności w aplikacji, liczby rozpoczętych i zakończonych lekcji, a także poziomu ich zaangażowania w naukę.
 
 Dane te zostały zebrane \[daty kiedy co i jak\].
+
+
+
+
 
 ```{r}
 #| include: false # wylaczenie wynikow 
@@ -136,6 +140,64 @@ ggplot(platform_usage, aes(x = reorder(duolingo_platform, -user_count), y = user
 ```
 
 ## Kto sięga po aplikację?
+```{r}
+# Zakładamy, że dane zostały wcześniej załadowane jako "duolingo_data"
+# Plik CSV został wczytany, np.: duolingo_data <- read.csv("duolingo_dataset.csv")
+
+# Wyodrębnienie unikalnych krajów
+unikalne_kraje <- duolingo_data %>%
+  select(country) %>%
+  distinct()
+
+# Słownik do mapowania kodów krajów na pełne nazwy (ISO3 -> pełne nazwy)
+slownik <- c(
+  "JP" = "Japan", "RU" = "Russian Federation", "CO" = "Colombia", 
+  "TW" = "Taiwan", "GB" = "United Kingdom", "BR" = "Brazil", 
+  "MX" = "Mexico", "DE" = "Germany", "FR" = "France", 
+  "US" = "United States", "PL" = "Poland"
+)
+
+# Użycie słownika do zamiany kodów na pełne nazwy
+unikalne_kraje$country_full <- slownik[unikalne_kraje$country]
+
+# Agregacja danych dla liczby użytkowników według krajów
+dane_kraje <- duolingo_data %>%
+  group_by(country) %>%
+  summarise(users = n()) %>% # Liczba użytkowników w każdym kraju
+  mutate(country_full = slownik[country]) # Dodanie pełnych nazw krajów
+
+world <- ne_countries(scale = "small", returnclass = "sf")
+
+# Połączenie danych użytkowników z danymi o krajach
+map_data <- world %>%
+  left_join(dane_kraje, by = c("name" = "country_full")) # Dopasowanie po pełnych nazwach krajów
+
+# Tworzenie wykresu mapy
+library(ggplot2)
+
+ggplot(data = map_data) +
+  geom_sf(fill = "white", color = "gray90", size = 0.2) + # Tło mapy i cienkie granice
+  geom_sf(aes(fill = users), color = "black", size = 0.3) + # Krajowe granice i kolory
+  scale_fill_gradient(
+    name = "Liczba użytkowników", # Nazwa legendy
+    low = "pink", high = "red", na.value = "gray80", # Gradient od różowego do czerwonego
+    guide = guide_colorbar(barwidth = 15, barheight = 0.5) # Węższa i dłuższa legenda
+  ) +
+  theme_minimal() + # Minimalistyczny styl
+  theme(
+    legend.position = "bottom", # Umieszczenie legendy poniżej mapy
+    legend.title = element_text(size = 10), # Mniejsza czcionka tytułu legendy
+    legend.text = element_text(size = 8), # Mniejsza czcionka w legendzie
+    plot.title = element_text(size = 14, face = "bold"), # Tytuł mapy
+    plot.subtitle = element_text(size = 10) # Podtytuł mapy
+  ) +
+  labs(
+    title = "Rozkład użytkowników Duolingo według krajów",
+    subtitle = "Kolor przedstawia liczbę użytkowników w danym kraju",
+    caption = "Źródło: Dane Duolingo"
+  )
+
+```
 
 ```{r}
 unikalne_kraje <- duolingo_data %>% 
@@ -143,7 +205,7 @@ unikalne_kraje <- duolingo_data %>%
   distinct()
 
 # Zmiana nazw krajów na pełne nazwy przy użyciu słownika
-slownik <- c("JP" = "Japonia", "RU" = "Rosja", "CO" =  "Kolumbia", "TW" = "Tajwan", "GB" = "Wielka Brytania", "BR" = "Brazylia", "MX" = "Meksyk", "DE" = "Niemcy", "FR" = "Francja", "US" = "Stany Zjednoczone")
+slownik <- c("JP" = "Japan", "RU" = "Russian Federation", "CO" =  "Colombia", "TW" = "Taiwan", "GB" = "United Kingdom", "BR" = "Brazil", "MX" = "Mexico", "DE" = "Germany", "FR" = "France", "US" = "United States")
 
 # Użycie slownika do zamiany kodów na pełne nazwy
 kraje <- unikalne_kraje$country
@@ -152,6 +214,49 @@ kraje_z_nazwami <- slownik[kraje]
 # Utworzenie ramki danych z pełnymi nazwami krajów
 unikalne_kraje$country <- kraje_z_nazwami
 print(unikalne_kraje)
+
+```
+```{r}
+
+dane <- data.frame(
+  country = c("US", "FR", "DE", "PL", "GB"),
+  users = c(500, 300, 200, 150, 250) # liczba użytkowników w poszczególnych krajach
+)
+
+# Słownik do mapowania kodów krajów na pełne nazwy (ISO3 wymagane przez rnaturalearth)
+slownik <- c("US" = "United States", "FR" = "France", "DE" = "Germany", 
+             "PL" = "Poland", "GB" = "United Kingdom")
+dane$country_full <- slownik[dane$country]
+
+# Wczytanie danych geograficznych o granicach państw
+world <- ne_countries(scale = "medium", returnclass = "sf")
+
+# Połączenie danych użytkowników z danymi o krajach
+map_data <- world %>%
+  left_join(dane, by = c("name" = "country_full")) # Dopasowanie po nazwach krajów
+
+# Tworzenie wykresu mapy
+ggplot(data = map_data) +
+  geom_sf(fill = "white", color = "gray95", size = 0) + # Tło mapy i cienkie granice
+  geom_sf(aes(fill = users), color = "gray50", size = 0.2) + # Krajowe granice i kolory
+  scale_fill_gradient(
+    name = "Liczba użytkowników", # Nazwa legendy
+    low = "pink", high = "red", na.value = "gray95", # Gradient od różowego do czerwonego
+    guide = guide_colorbar(barwidth = 10, barheight = 0.5) # Węższa i dłuższa legenda
+  ) +
+  theme_minimal() + # Minimalistyczny styl
+  theme(
+    legend.position = "bottom", # Umieszczenie legendy poniżej mapy
+    legend.title = element_text(size = 10), # Mniejsza czcionka tytułu legendy
+    legend.text = element_text(size = 8), # Mniejsza czcionka w legendzie
+    plot.title = element_text(size = 14, face = "bold"), # Tytuł mapy
+    plot.subtitle = element_text(size = 10) # Podtytuł mapy
+  ) +
+  labs(
+    title = "Rozkład użytkowników Duolingo według krajów",
+    subtitle = "Kolor przedstawia liczbę użytkowników w danym kraju",
+    caption = "Źródło: Dane Duolingo"
+  )
 
 ```
 
