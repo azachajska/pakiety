@@ -4,18 +4,25 @@ author: "Aleksandra Zachajska, Konstanty Andrzejczak"
 format: pdf
 execute: 
   echo: false #niewidoczność kodu w całym pliku
+  results: 'hide'   # Ukrywa wyniki tekstowe
+  warning: false    # Wyłącza ostrzeżenia
+  message: false    # Wyłącza komunikaty
 ---
 
 ```{r}
 #| include: false # wylaczenie wynikow 
 # Załadowanie bibliotek
 library(ggplot2)
-library(dplyr)
 library(readr)
 library(tidyverse)
 library(rnaturalearth)
 library(rnaturalearthdata)
 library(sf)
+library(dplyr)
+library(tidyr)
+library(skimr)
+
+
 
 #Przypisanie danych
 duolingo_data <- read_csv("duolingo_dataset.csv")
@@ -30,9 +37,521 @@ Za sukcesem aplikacji stoi nie tylko jej innowacyjna metoda nauki, oparta na gam
 
 ### Dane
 
-Aby przeprowadzić tę analizę, posłużymy się danymi pochodzącymi z \[...\], które zawierają szczegółowe informacje na temat użytkowników, ich aktywności w aplikacji, liczby rozpoczętych i zakończonych lekcji, a także poziomu ich zaangażowania w naukę.
+Aby przeprowadzić tę analizę, posłużymy się danymi pochodzącymi z publicznego repozytorium MatthewWolff/DuolingoAnalysis na GitHubie, które zawierają szczegółowe informacje na temat użytkowników, ich aktywności w aplikacji, liczby rozpoczętych i zakończonych lekcji, a także poziomu ich zaangażowania w naukę.
 
-Dane te zostały zebrane \[daty kiedy co i jak\].
+https://github.com/MatthewWolff/DuolingoAnalysis.git
+
+Autor nie zamieścił informacji o licencji na jakiej udostępniono dane jednak dane zostaną użyte wyłącznie w celach edukacyjnych do wykonania niniejszej analizy funkcjonalnej.
+Dane zostały zebrane za pomocą ankiety przeprowadzonej przez Duolingo w okresie od 1 sierpnia do 5 listopada 2018 roku. Ankieta obejmowała pytania dotyczące aktywności użytkowników, korzystania z aplikacji oraz ich profilu demograficznego, takiego jak wiek, płeć czy kraj zamieszkania.
+
+### Opis zmiennych
+
+Dane obejmują 5488 obserwacji i 29 zmiennych. W zbiorze znajdują się dane demograficzne, takie jak wiek i płeć, a także miary aktywności użytkowników w aplikacji, takie jak liczba ukończonych lekcji czy długość serii. Dane zawierają niewielką liczbę braków, które zostaną odpowiednio obsłużone w kolejnych etapach analizy.
+
+```{r}
+# Ładowanie wymaganych bibliotek
+library(knitr)
+library(dplyr)
+
+# Tworzenie danych opisowych dla zmiennych
+variable_description <- data.frame(
+  Zmienna = c(
+    "user_id", "age", "annual_income", "country", "duolingo_platform", 
+    "duolingo_subscriber", "duolingo_usage", "employment_status", "future_contact",
+    "gender", "other_resources", "primary_language_commitment", 
+    "primary_language_review", "primary_language_motivation", 
+    "primary_language_motivation_followup", "primary_language_proficiency", 
+    "student", "survey_complete", "time_spent_seconds", "duolingo_start_date", 
+    "highest_course_progress", "took_placement_test", "purchased_subscription", 
+    "highest_crown_count", "n_active_days", "n_lessons_started", 
+    "n_lessons_completed", "longest_streak", "n_days_on_platform"
+  ),
+  Opis = c(
+    "Unikalny identyfikator użytkownika",
+    "Grupa wiekowa użytkownika",
+    "Roczny dochód użytkownika",
+    "Kraj zamieszkania użytkownika",
+    "Platforma używana przez użytkownika",
+    "Status subskrypcji Duolingo Plus",
+    "Częstotliwość korzystania z aplikacji Duolingo",
+    "Status zatrudnienia użytkownika",
+    "Czy użytkownik zgodził się na kontakt w przyszłości",
+    "Płeć użytkownika",
+    "Liczba innych zasobów używanych do nauki języków",
+    "Deklaracja zaangażowania w naukę języka głównego",
+    "Przegląd postępów w nauce języka głównego",
+    "Motywacja użytkownika do nauki języka głównego",
+    "Dodatkowe informacje o motywacji do nauki głównego języka",
+    "Samodzielnie oceniony poziom znajomości języka głównego",
+    "Czy użytkownik jest studentem",
+    "Czy użytkownik ukończył ankietę",
+    "Czas spędzony na wypełnianiu ankiety (w sekundach)",
+    "Data rozpoczęcia korzystania z aplikacji",
+    "Najwyższy osiągnięty postęp w kursie (w procentach)",
+    "Czy użytkownik wykonał test poziomujący",
+    "Czy użytkownik wykupił subskrypcję Duolingo Plus",
+    "Najwyższa liczba zdobytych koron",
+    "Liczba dni, w których użytkownik był aktywny",
+    "Liczba lekcji rozpoczętych przez użytkownika",
+    "Liczba lekcji ukończonych przez użytkownika",
+    "Najdłuższa seria dni korzystania z aplikacji",
+    "Łączna liczba dni od rejestracji użytkownika w aplikacji"
+  ),
+  Jednostki_Wartosci = c(
+    "Tekst",
+    "Kategorie: 'Under 18', '18-34', '35-54', '55-74', '75 or older'",
+    "Kategorie: '$0 - $25,000', '$26,000 - $75,000', '$76,000 - $150,000', '> $150,000'",
+    "Kody krajów, np. 'US', 'JP', 'DE'",
+    "Kategorie: 'Android', 'iOS', 'Web'",
+    "Kategorie: 'Yes', 'No', 'Previously Paid'",
+    "Kategorie: 'Daily', 'Weekly', 'Monthly'",
+    "Kategorie: 'Employed full-time', 'Part-time', 'Retired', 'Unemployed'",
+    "Prawda/Fałsz",
+    "Kategorie: 'Male', 'Female', 'Other'",
+    "Liczba całkowita",
+    "Kategorie: 'Low', 'Medium', 'High'",
+    "Kategorie: 'Poor', 'Average', 'Good'",
+    "Tekst (deklaracje motywacji)",
+    "Tekst (dodatkowe informacje o motywacji)",
+    "Kategorie: 'Beginner', 'Intermediate', 'Advanced'",
+    "Prawda/Fałsz",
+    "Prawda/Fałsz",
+    "Liczba całkowita (sekundy)",
+    "Data (YYYY-MM-DD)",
+    "Procent (0-100)",
+    "Prawda/Fałsz",
+    "Prawda/Fałsz",
+    "Liczba całkowita",
+    "Liczba całkowita",
+    "Liczba całkowita",
+    "Liczba całkowita",
+    "Liczba całkowita",
+    "Liczba całkowita"
+  )
+)
+
+# Wyświetlenie tabeli w Quarto z użyciem knitr::kable
+kable(variable_description, col.names = c("Zmienna", "Opis", "Jednostki/Wartości"),
+      caption = "Pełny opis zmiennych w zbiorze danych Duolingo.")
+
+```
+
+Statystyki opisowe zmiennych liczbowych
+
+
+```{r}
+#| echo: false
+#| results: 'asis'
+# Wybór zmiennych liczbowych
+numeric_stats <- duolingo_data %>%
+  select(n_active_days, n_lessons_started, n_lessons_completed, longest_streak, n_days_on_platform) %>%
+  summarise_all(list(
+    mean = ~mean(., na.rm = TRUE),
+    median = ~median(., na.rm = TRUE),
+    sd = ~sd(., na.rm = TRUE),
+    min = ~min(., na.rm = TRUE),
+    max = ~max(., na.rm = TRUE)
+  ))
+
+# Wyświetlenie tabeli w formacie czytelnym
+numeric_stats_long <- numeric_stats %>%
+  pivot_longer(everything(), names_to = c("Variable", ".value"), names_sep = "_")
+
+print(numeric_stats_long)
+
+library(ggplot2)
+
+ggplot(duolingo_data, aes(x = n_active_days)) +
+  geom_histogram(binwidth = 10, fill = "blue", color = "black") +
+  labs(
+    title = "Histogram liczby aktywnych dni",
+    x = "Liczba aktywnych dni",
+    y = "Liczba użytkowników"
+  )
+
+
+```
+
+
+
+
+## Wczytanie Danych
+
+
+
+```{r}
+# Wyświetlenie typów kolumn
+sapply(duolingo_data, class)
+
+
+```
+
+Zbiór danych Duolingo zawiera 29 zmiennych opisujących profile użytkowników oraz ich aktywność w aplikacji. Dane tekstowe, takie jak age, annual_income czy duolingo_platform, zostały sklasyfikowane jako zmienne kategoryczne, co pozwala na ich efektywną analizę. Zmienne logiczne, takie jak future_contact (zgoda na kontakt w przyszłości) czy took_placement_test (informacja o wykonaniu testu poziomującego), umożliwiają badanie binarnych decyzji użytkowników. Zmienne liczbowe, takie jak n_active_days (liczba aktywnych dni) czy n_lessons_completed (liczba ukończonych lekcji), zostały zachowane w odpowiednim formacie numerycznym, aby umożliwić analizę ilościową. Dodatkowo, duolingo_start_date, reprezentująca datę rozpoczęcia korzystania z aplikacji, została przekonwertowana na typ daty, co pozwala na analizę danych czasowych. 
+
+
+```{r}
+# Zamiana wartości "No Response" na NA we wszystkich kolumnach
+duolingo_data[duolingo_data == "No Response"] <- NA
+
+# Sprawdzenie, ile wartości zostało zamienionych
+summary(duolingo_data)
+
+```
+
+
+
+# Analiza danych
+
+Wyniki ankiet pochodza z roznych krajow
+
+
+```{r}
+# Zakładamy, że dane zostały wcześniej załadowane jako "duolingo_data"
+# Plik CSV został wczytany, np.: duolingo_data <- read.csv("duolingo_dataset.csv")
+
+# Wyodrębnienie unikalnych krajów
+unikalne_kraje <- duolingo_data %>%
+  select(country) %>%
+  distinct()
+
+# Słownik do mapowania kodów krajów na pełne nazwy (ISO3 -> pełne nazwy)
+slownik <- c(
+  "JP" = "Japan", "RU" = "Russian Federation", "CO" = "Colombia", 
+  "TW" = "Taiwan", "GB" = "United Kingdom", "BR" = "Brazil", 
+  "MX" = "Mexico", "DE" = "Germany", "FR" = "France", 
+  "US" = "United States", "PL" = "Poland"
+)
+
+# Użycie słownika do zamiany kodów na pełne nazwy
+unikalne_kraje$country_full <- slownik[unikalne_kraje$country]
+
+# Agregacja danych dla liczby użytkowników według krajów
+dane_kraje <- duolingo_data %>%
+  group_by(country) %>%
+  summarise(users = n()) %>% # Liczba użytkowników w każdym kraju
+  mutate(country_full = slownik[country]) # Dodanie pełnych nazw krajów
+
+world <- ne_countries(scale = "small", returnclass = "sf")
+
+# Połączenie danych użytkowników z danymi o krajach
+map_data <- world %>%
+  left_join(dane_kraje, by = c("name" = "country_full")) # Dopasowanie po pełnych nazwach krajów
+
+# Tworzenie wykresu mapy
+library(ggplot2)
+
+ggplot(data = map_data) +
+  geom_sf(fill = "white", color = "gray90", size = 0.2) + # Tło mapy i cienkie granice
+  geom_sf(aes(fill = users), color = "black", size = 0.3) + # Krajowe granice i kolory
+  scale_fill_gradient(
+    name = "Liczba użytkowników", # Nazwa legendy
+    low = "pink", high = "red", na.value = "gray80", # Gradient od różowego do czerwonego
+    guide = guide_colorbar(barwidth = 15, barheight = 0.5) # Węższa i dłuższa legenda
+  ) +
+  theme_minimal() + # Minimalistyczny styl
+  theme(
+    legend.position = "bottom", # Umieszczenie legendy poniżej mapy
+    legend.title = element_text(size = 10), # Mniejsza czcionka tytułu legendy
+    legend.text = element_text(size = 8), # Mniejsza czcionka w legendzie
+    plot.title = element_text(size = 14, face = "bold"), # Tytuł mapy
+    plot.subtitle = element_text(size = 10) # Podtytuł mapy
+  ) +
+  labs(
+    title = "Rozkład użytkowników Duolingo według krajów",
+    subtitle = "Kolor przedstawia liczbę użytkowników w danym kraju",
+    caption = "Źródło: Dane Duolingo"
+  )
+
+```
+
+jaki jest rozklad wiekowy uzytkownikow
+```{r}
+ggplot(duolingo_data, aes(x = age)) +
+  geom_bar(fill = "steelblue") +
+  labs(title = "Rozkład wiekowy użytkowników", x = "Grupa wiekowa", y = "Liczba użytkowników") +
+  theme_minimal()
+
+```
+
+
+
+
+
+
+Jak aplikacja Duolingo zyskiwała na popularności?
+
+```{r}
+# Konwersja kolumny 'duolingo_start_date' na typ Date
+duolingo_data$duolingo_start_date <- as.Date(duolingo_data$duolingo_start_date, format = "%Y-%m-%dT%H:%M:%SZ")
+
+# Ekstrakcja roku i miesiąca rozpoczęcia korzystania z aplikacji
+duolingo_data <- duolingo_data %>%
+  mutate(start_year_month = format(duolingo_start_date, "%Y-%m")) %>%
+  filter(!is.na(start_year_month)) # Usunięcie wierszy bez dat
+
+# Grupowanie danych według roku i miesiąca i liczenie liczby użytkowników
+popularity_by_month <- duolingo_data %>%
+  group_by(start_year_month) %>%
+  summarise(user_count = n()) %>%
+  arrange(start_year_month)
+
+# Wykres przedstawiający wzrost popularności Duolingo w czasie (miesiące)
+# Wykres z poprawionymi etykietami osi X
+ggplot(popularity_by_month, aes(x = as.Date(paste0(start_year_month, "-01")), y = user_count)) +
+  geom_line(color = "blue", size = 1) +
+  labs(
+    title = "Wzrost popularności Duolingo w czasie (miesiące)",
+    x = "Data rozpoczęcia korzystania z aplikacji (rok-miesiąc)",
+    y = "Liczba nowych użytkowników"
+  ) +
+  theme_minimal() +
+  scale_x_date(
+    date_labels = "%Y-%m",        # Formatowanie dat (rok-miesiąc)
+    date_breaks = "6 months"      # Oznaczenia co 6 miesięcy
+  ) +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1)  # Rotacja etykiet o 45 stopni
+  )
+
+```
+
+
+
+```{r}
+library(ggplot2)
+library(dplyr)
+
+duolingo_data <- read_csv("duolingo_dataset.csv")
+
+library(ggplot2)
+library(dplyr)
+
+# Konwersja kolumny 'duolingo_start_date' na typ Date
+duolingo_data$duolingo_start_date <- as.Date(duolingo_data$duolingo_start_date, format = "%Y-%m-%dT%H:%M:%SZ")
+
+# Filtrowanie danych (usunięcie brakujących dat)
+duolingo_data <- duolingo_data %>%
+  filter(!is.na(duolingo_start_date)) # Usunięcie wierszy z brakującymi datami
+
+# Ekstrakcja roku rozpoczęcia korzystania z aplikacji
+duolingo_data <- duolingo_data %>%
+  mutate(start_year = format(duolingo_start_date, "%Y"))
+
+# Grupowanie danych według roku i grup wiekowych
+age_popularity_yearly <- duolingo_data %>%
+  group_by(start_year, age) %>%
+  summarise(user_count = n(), .groups = "drop") %>%
+  arrange(start_year)
+
+# Obliczanie udziału procentowego w każdym roku
+age_popularity_yearly <- age_popularity_yearly %>%
+  group_by(start_year) %>%
+  mutate(
+    total_users = sum(user_count),
+    proportion = user_count / total_users * 100
+  )
+
+# Wykres proporcjonalnego udziału grup wiekowych w czasie (rocznym)
+ggplot(age_popularity_yearly, aes(x = as.integer(start_year), y = proportion, color = age, group = age)) +
+  geom_line(size = 1) +
+  labs(
+    title = "Proporcjonalny wzrost użytkowników w grupach wiekowych (rocznie)",
+    x = "Rok",
+    y = "Proporcja nowych użytkowników (%)",
+    color = "Grupa wiekowa"
+  ) +
+  theme_minimal() +
+  scale_x_continuous(breaks = seq(min(as.integer(age_popularity_yearly$start_year)), max(as.integer(age_popularity_yearly$start_year)), 1)) +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1)
+  )
+
+
+
+```
+
+
+
+```{r}
+
+# Przygotowanie danych
+duolingo_data <- duolingo_data %>%
+  mutate(start_year = format(as.Date(duolingo_start_date), "%Y")) %>%  # Ekstrakcja roku z daty
+  group_by(start_year, age) %>%  # Grupowanie po roku i przedziale wiekowym
+  summarise(users_count = n(), .groups = "drop")  # Liczba użytkowników
+
+# Tworzenie wykresu
+ggplot(duolingo_data, aes(x = start_year, y = users_count, fill = age)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(
+    title = "Liczba osób dołączających do Duolingo w różnych przedziałach wiekowych",
+    x = "Rok dołączenia",
+    y = "Liczba użytkowników",
+    fill = "Przedział wiekowy"
+  ) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+
+
+
+
+
+
+```{r}
+# Instalacja i załadowanie wymaganych pakietów
+
+# Wczytanie danych
+duolingo_data <- read.csv("duolingo_dataset.csv")
+
+# Tworzenie wykresu
+ggplot(data = duolingo_data, aes(x = age, fill = gender)) +
+  geom_bar(position = "dodge") +
+  labs(
+    title = "Ilość osób korzystających z Duolingo na podstawie wieku i płci",
+    x = "Grupa wiekowa",
+    y = "Liczba użytkowników",
+    fill = "Płeć"
+  ) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+```
+
+
+
+
+
+```{r}
+# Instalacja i załadowanie pakietu ggplot2
+if (!requireNamespace("ggplot2", quietly = TRUE)) install.packages("ggplot2")
+library(ggplot2)
+
+# Wczytanie danych
+duolingo_data <- read.csv("duolingo_dataset.csv")
+
+# Tworzenie wykresu
+ggplot(data = duolingo_data, aes(x = annual_income, y = n_days_on_platform, fill = duolingo_subscriber)) +
+  geom_boxplot() +
+  labs(
+    title = "Dochód a subskrypcja Duolingo w odniesieniu do liczby dni w aplikacji",
+    x = "Przedział dochodu",
+    y = "Liczba dni spędzonych w aplikacji",
+    fill = "Subskrypcja"
+  ) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+```
+
+
+
+
+```{r}
+# Instalacja i załadowanie pakietu ggplot2
+if (!requireNamespace("ggplot2", quietly = TRUE)) install.packages("ggplot2")
+library(ggplot2)
+
+# Wczytanie danych
+duolingo_data <- read.csv("duolingo_dataset.csv")
+
+# Tworzenie wykresu
+ggplot(data = duolingo_data, aes(x = annual_income, fill = duolingo_subscriber)) +
+  geom_bar(position = "dodge") +
+  labs(
+    title = "Dochód a subskrypcja Duolingo Plus",
+    x = "Przedział dochodu",
+    y = "Liczba użytkowników",
+    fill = "Subskrypcja"
+  ) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+```
+
+
+
+
+```{r}
+# Instalacja i załadowanie bibliotek
+if (!requireNamespace("ggplot2", quietly = TRUE)) install.packages("ggplot2")
+library(ggplot2)
+
+# Tworzenie wykresu punktowego (Scatter Plot)
+ggplot(duolingo_data, aes(x = other_resources, y = n_active_days)) +
+  geom_point(alpha = 0.6, color = "blue") +
+  labs(
+    title = "Liczba innych zasobów a liczba aktywnych dni w Duolingo",
+    x = "Liczba innych zasobów",
+    y = "Liczba aktywnych dni"
+  ) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(hjust = 0.5, size = 14),
+    axis.title = element_text(size = 12)
+  )
+
+```
+
+
+
+```{r}
+# Ensure 'duolingo_subscriber' is a factor
+duolingo_data$duolingo_subscriber <- as.factor(duolingo_data$duolingo_subscriber)
+
+# Create the boxplot
+ggplot(duolingo_data, aes(x = duolingo_subscriber, y = n_active_days, fill = duolingo_subscriber)) +
+  geom_boxplot() +
+  labs(
+    title = "Porównanie liczby aktywnych dni w grupach subskrybentów Duolingo",
+    x = "Status subskrypcji",
+    y = "Liczba aktywnych dni"
+  ) +
+  theme_minimal()
+
+```
+```{r}
+# Test t-Studenta
+t_test_result <- t.test(n_active_days ~ duolingo_subscriber, data = duolingo_data)
+print(t_test_result)
+# Test Wilcoxona
+wilcox_test_result <- wilcox.test(n_active_days ~ duolingo_subscriber, data = duolingo_data)
+print(wilcox_test_result)
+
+
+```
+
+
+
+
+
+
+```{r}
+# Średnia liczba aktywnych dni w grupach subskrypcyjnych
+ggplot(duolingo_data, aes(x = duolingo_subscriber, y = n_active_days, fill = duolingo_subscriber)) +
+  stat_summary(fun = mean, geom = "bar", width = 0.6) +
+  stat_summary(fun.data = mean_cl_normal, geom = "errorbar", width = 0.2) +
+  labs(
+    title = "Średnia liczba aktywnych dni w grupach subskrypcyjnych",
+    x = "Status subskrypcji",
+    y = "Średnia liczba aktywnych dni"
+  ) +
+  theme_minimal()
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
