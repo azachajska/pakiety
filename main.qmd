@@ -30,10 +30,13 @@ Za sukcesem aplikacji stoi nie tylko jej innowacyjna metoda nauki, oparta na gam
 
 ### Dane
 
-Aby przeprowadzić tę analizę, posłużymy się danymi pochodzącymi z \[...\], które zawierają szczegółowe informacje na temat użytkowników, ich aktywności w aplikacji, liczby rozpoczętych i zakończonych lekcji, a także poziomu ich zaangażowania w naukę.
+Aby przeprowadzić tę analizę, posłużymy się danymi pochodzącymi z publicznego repozytorium MatthewWolff/DuolingoAnalysis na GitHubie, które zawierają szczegółowe informacje na temat użytkowników, ich aktywności w aplikacji, liczby rozpoczętych i zakończonych lekcji, a także poziomu ich zaangażowania w naukę.
 
-Dane te zostały zebrane \[daty kiedy co i jak\].
+https://github.com/MatthewWolff/DuolingoAnalysis.git
 
+
+Autor nie zamieścił informacji o licencji na jakiej udostępniono dane jednak zostaną one użyte jedynie do wykonania analizy funkcjonalenj w poniższej pracy. 
+Znalezione dane zostały zebrane za pomocą ankiety przeprowadzonej przez Duolingo, które miałe miejsce od 1 sierpnia do 5 listopada 2018 roku.  
 
 
 
