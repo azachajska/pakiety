@@ -1,7 +1,10 @@
 ---
 title: "Czy profil użytkownika wpływa na aktywność w aplikacji?"
 author: "Aleksandra Zachajska, Konstanty Andrzejczak"
-format: pdf
+format: 
+  pdf:
+    toc: true
+    number-sections: true
 execute: 
   echo: false #niewidoczność kodu w całym pliku
   results: 'hide'   # Ukrywa wyniki tekstowe
@@ -21,41 +24,30 @@ library(sf)
 library(dplyr)
 library(tidyr)
 library(skimr)
-
-
+library(knitr)
 
 #Przypisanie danych
 duolingo_data <- read_csv("duolingo_dataset.csv")
 ```
 
 
-## Wprowadzenie
+# Wprowadzenie
 
 Rozwój technologii mobilnych i powszechna dostępność urządzeń elektronicznych znacząco wpłynęły na sposób, w jaki ludzie zdobywają wiedzę i rozwijają swoje umiejętności. Aplikacje mobilne, takie jak Duolingo, stanowią doskonały przykład tej rewolucji edukacyjnej, umożliwiając użytkownikom naukę języków obcych w sposób elastyczny, dostosowany do ich indywidualnych potrzeb i harmonogramu. Od momentu wprowadzenia na rynek w 2011 roku, Duolingo zdobyło ogromną popularność na całym świecie, przyciągając miliony użytkowników, którzy regularnie korzystają z aplikacji, aby doskonalić swoje umiejętności językowe.
 
 Za sukcesem aplikacji stoi nie tylko jej innowacyjna metoda nauki, oparta na gamifikacji, ale także zdolność do dostosowania się do różnorodnych potrzeb użytkowników. Aplikacja stała się szczególnie popularna w Stanach Zjednoczonych, Europie i Azji, a jej użytkownicy reprezentują szeroką gamę krajów, kultur oraz poziomów zaawansowania. Zjawisko to skłania do refleksji nad tym, w jaki sposób profil użytkownika – obejmujący takie czynniki jak wiek, kraj pochodzenia, płeć czy wcześniejsze doświadczenia z językiem – może wpływać na jego zaangażowanie oraz efektywność nauki. Celem niniejszej pracy jest zbadanie, w jaki sposób różne cechy użytkowników aplikacji Duolingo kształtują ich aktywność, motywację oraz postępy w nauce, a także jakie czynniki mogą decydować o sukcesie w tym procesie edukacyjnym.
 
-### Dane
+## Dane
 
-Aby przeprowadzić tę analizę, posłużymy się danymi pochodzącymi z publicznego repozytorium MatthewWolff/DuolingoAnalysis na GitHubie, które zawierają szczegółowe informacje na temat użytkowników, ich aktywności w aplikacji, liczby rozpoczętych i zakończonych lekcji, a także poziomu ich zaangażowania w naukę.
-<<<<<<< HEAD
+Aby przeprowadzić tę analizę, posłużymy się danymi pochodzącymi z publicznego repozytorium MatthewWolff/DuolingoAnalysis na GitHubie [1]. Autor nie zamieścił informacji o licencji na jakiej udostępniono dane jednak zostaną one użyte wyłącznie w celach edukacyjnych do wykonania niniejszej analizy funkcjonalnej.
 
-https://github.com/MatthewWolff/DuolingoAnalysis.git
-=======
-
-https://github.com/MatthewWolff/DuolingoAnalysis.git
-
-Autor nie zamieścił informacji o licencji na jakiej udostępniono dane jednak dane zostaną użyte wyłącznie w celach edukacyjnych do wykonania niniejszej analizy funkcjonalnej.
-Dane zostały zebrane za pomocą ankiety przeprowadzonej przez Duolingo w okresie od 1 sierpnia do 5 listopada 2018 roku. Ankieta obejmowała pytania dotyczące aktywności użytkowników, korzystania z aplikacji oraz ich profilu demograficznego, takiego jak wiek, płeć czy kraj zamieszkania.
-
-### Opis zmiennych
-
-Dane obejmują 5488 obserwacji i 29 zmiennych. W zbiorze znajdują się dane demograficzne, takie jak wiek i płeć, a także miary aktywności użytkowników w aplikacji, takie jak liczba ukończonych lekcji czy długość serii. Dane zawierają niewielką liczbę braków, które zostaną odpowiednio obsłużone w kolejnych etapach analizy.
-
-```{r}
-# Ładowanie wymaganych bibliotek
+## Opis zmiennych
+Zestawienie zostało wykonane przy pomocy ankiety przeprowadzonej przez Duolingo w okresie od 1 sierpnia do 5 listopada 2018 roku. Ankieta obejmowała pytania dotyczące aktywności użytkowników, korzystania z aplikacji oraz ich profilu demograficznego, takiego jak wiek, płeć czy kraj zamieszkania. Baza danych obejmuje 5488 obserwacji i 29 typów zmiennych. Dane zawierają niewielką liczbę braków, które zostaną odpowiednio obsłużone w kolejnych etapach analizy. Dokładniejsza  charakterystyka pól została przedstawiona w Tabeli 1.
+   
+```{r, results='asis',message=FALSE}
 library(knitr)
 library(dplyr)
+library(kableExtra)
 
 # Tworzenie danych opisowych dla zmiennych
 variable_description <- data.frame(
@@ -134,13 +126,202 @@ variable_description <- data.frame(
   )
 )
 
-# Wyświetlenie tabeli w Quarto z użyciem knitr::kable
-kable(variable_description, col.names = c("Zmienna", "Opis", "Jednostki/Wartości"),
-      caption = "Pełny opis zmiennych w zbiorze danych Duolingo.")
-
+# Wyświetlenie tabeli z zawijaniem tekstu i mniejszą czcionką
+variable_description %>%
+  kbl(col.names = c("Zmienna", "Opis", "Jednostki/Wartości"),
+      caption = "Pełny opis zmiennych w zbiorze danych Duolingo.") %>%
+  kable_styling(latex_options = c("striped", "scale_down"), font_size = 14) %>%
+  column_spec(2, width = "10cm") %>%
+  column_spec(3, width = "6cm")
 ```
 
-Statystyki opisowe zmiennych liczbowych
+
+# Duolingo według badanego zbioru danych 
+## Popularność aplikacji
+Jak wspomniano wcześniej, aplikacja Duolingo z biegiem czasu zyskiwała coraz większą popularność na rynku międzynarodowym. Aby przeanalizować przyrost liczby użytkowników, posłużono się danymi ankietowymi, które przedstawiają liczbę nowych użytkowników w poszczególnych miesiącach. Poniższy wykres ilustruje tę dynamikę.
+
+```{r}
+# Konwersja kolumny 'duolingo_start_date' na typ Date
+duolingo_data$duolingo_start_date <- as.Date(duolingo_data$duolingo_start_date, format = "%Y-%m-%dT%H:%M:%SZ")
+
+# Ekstrakcja roku i miesiąca rozpoczęcia korzystania z aplikacji
+duolingo_data <- duolingo_data %>%
+  mutate(start_year_month = format(duolingo_start_date, "%Y-%m")) %>%
+  filter(!is.na(start_year_month)) # Usunięcie wierszy bez dat
+
+# Grupowanie danych według roku i miesiąca i liczenie liczby użytkowników
+popularity_by_month <- duolingo_data %>%
+  group_by(start_year_month) %>%
+  summarise(user_count = n()) %>%
+  arrange(start_year_month)
+
+# Wykres przedstawiający wzrost popularności Duolingo w czasie (miesiące)
+# Wykres z poprawionymi etykietami osi X
+ggplot(popularity_by_month, aes(x = as.Date(paste0(start_year_month, "-01")), y = user_count)) +
+  geom_line(color = "blue", size = 1) +
+  labs(
+    title = "Wzrost popularności Duolingo w czasie (miesiące)",
+    x = "Data rozpoczęcia korzystania z aplikacji (rok-miesiąc)",
+    y = "Liczba nowych użytkowników"
+  ) +
+  theme_minimal() +
+  scale_x_date(
+    date_labels = "%Y-%m",        # Formatowanie dat (rok-miesiąc)
+    date_breaks = "6 months"      # Oznaczenia co 6 miesięcy
+  ) +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1)  # Rotacja etykiet o 45 stopni
+  )
+
+```
+Wykres ten przedstawia liczbę nowych użytkowników aplikacji w kolejnych miesiącach. Można zauważyć wyraźną tendencję wzrostu, przy czym największy przyrost liczby użytkowników miał miejsce w trzecim kwartale 2018 roku. Ta gwałtowna ekspansja może być efektem zintensyfikowanych działań marketingowych w tym okresie, a także wyróżnienia aplikacji w sklepach App Store i Google Play.
+
+Dodatkowo, warto zaznaczyć, że Duolingo wprowadziło w tym czasie nowe funkcje, które mogły znacząco wpłynąć na wzrost liczby użytkowników. Przykładem jest system „Crown Levels”, który miał na celu motywowanie użytkowników do kontynuowania nauki poprzez zdobywanie kolejnych poziomów, co nawiązywało do mechanizmów znanych z gier mobilnych. Takie innowacje mogły zachęcić większą liczbę osób do regularnego korzystania z aplikacji, przyczyniając się tym samym do jej popularności. 
+
+## Dlaczego Duolingo?
+W kontekście oceny sukcesu aplikacji kluczową rolę odgrywa zrozumienie motywacji użytkowników, czyli czynników, które skłaniają ich do wyboru konkretnego produktu. W przypadku Duolingo, istotnym aspektem jest nie tylko sama funkcjonalność aplikacji, ale także jej zdolność do przyciągania szerokiego grona odbiorców. Brak zainteresowania ze strony użytkowników skutkowałby brakiem popytu na aplikację, co mogłoby wpłynąć na jej dalszy rozwój. Aby lepiej zrozumieć, dlaczego użytkownicy wybierają Duolingo, przeprowadzono ankietę, w której respondenci mieli możliwość wskazania czynników, które miały wpływ na ich decyzję.
+
+```{r}
+#| fig.width: 15
+#| fig.height: 10
+# Ładowanie bibliotek
+library(ggplot2)
+library(dplyr)
+
+# Wczytanie danych
+duolingo_data <- read.csv("duolingo_dataset.csv")  # Zamień na ścieżkę do swojego pliku
+
+
+# Filtrowanie danych, aby uwzględnić tylko płcie "Male" i "Female" oraz usunąć "No Response"
+duolingo_data <- duolingo_data %>%
+  filter(
+    gender %in% c("Male", "Female"),
+    primary_language_motivation != "No Response"
+  )
+
+# Obliczanie procentów w grupach
+duolingo_data_summary <- duolingo_data %>%
+  group_by(primary_language_motivation, gender) %>%
+  summarise(count = n(), .groups = "drop") %>%
+  group_by(primary_language_motivation) %>%
+  mutate(percentage = count / sum(count) * 100)
+
+# Tworzenie skumulowanego histogramu z procentami
+ggplot(duolingo_data_summary, aes(x = primary_language_motivation, y = count, fill = gender)) +
+  geom_bar(stat = "identity", position = "stack", alpha = 0.8) +
+  geom_text(aes(label = paste0(round(percentage, 1), "%")), 
+            position = position_stack(vjust = 0.5), size = 4.5, color = "white") +
+  labs(
+    title = "Skumulowany histogram motywacji z procentowym udziałem kobiet i mężczyzn",
+    x = "Motywacja do nauki języka",
+    y = "Liczba użytkowników",
+    fill = "Płeć"
+  ) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(hjust = 0.5, size = 14),
+    axis.text.x = element_text(size = 12, angle = 45, hjust = 1),
+    axis.title.x = element_text(size = 16),
+    axis.title.y = element_text(size = 16)
+  )
+```
+Wykres powyżej przedstawia wyniki ankiety, ukazując, jakie motywacje były najczęściej wskazywane przez użytkowników. Znacząca większość osób wskazała chęć nauki języka w celu podróżowania, co podkreśla rolę aplikacji jako narzędzia ułatwiającego komunikację w obcych krajach. Kolejnymi ważnymi powodami były chęć rozwoju zawodowego oraz potrzeba nauki nowych umiejętności w sposób wygodny i dostępny. Takie odpowiedzi świadczą o szerokim zakresie zastosowań Duolingo, który odpowiada na różnorodne potrzeby użytkowników.
+
+## Geograficzne rozłożenie użytkowników
+
+```{r}
+# Zakładamy, że dane zostały wcześniej załadowane jako "duolingo_data"
+# Plik CSV został wczytany, np.: duolingo_data <- read.csv("duolingo_dataset.csv")
+
+# Wyodrębnienie unikalnych krajów
+unikalne_kraje <- duolingo_data %>%
+  select(country) %>%
+  distinct()
+
+# Słownik do mapowania kodów krajów na pełne nazwy (ISO3 -> pełne nazwy)
+slownik <- c(
+  "JP" = "Japan", "RU" = "Russia", "CO" = "Colombia", 
+  "TW" = "Taiwan", "GB" = "United Kingdom", "BR" = "Brazil", 
+  "MX" = "Mexico", "DE" = "Germany", "FR" = "France", 
+  "US" = "United States of America", "PL" = "Poland"
+)
+
+# Użycie słownika do zamiany kodów na pełne nazwy
+unikalne_kraje$country_full <- slownik[unikalne_kraje$country]
+
+# Agregacja danych dla liczby użytkowników według krajów
+dane_kraje <- duolingo_data %>%
+  group_by(country) %>%
+  summarise(users = n()) %>% # Liczba użytkowników w każdym kraju
+  mutate(country_full = slownik[country]) # Dodanie pełnych nazw krajów
+
+world <- ne_countries(scale = "small", returnclass = "sf")
+
+# Połączenie danych użytkowników z danymi o krajach
+map_data <- world %>%
+  left_join(dane_kraje, by = c("name" = "country_full")) # Dopasowanie po pełnych nazwach krajów
+
+ggplot(data = map_data) +
+  geom_sf(fill = "white", color = "gray90", size = 0.1) + # Tło mapy i cienkie granice
+  geom_sf(aes(fill = users), color = "gray30", size = 0.1) + # Krajowe granice i kolory
+  scale_fill_gradient(
+    name = "Liczba użytkowników", # Nazwa legendy
+    low = "pink", high = "blue", na.value = "gray95", # Gradient od różowego do czerwonego
+    guide = guide_colorbar(barwidth = 15, barheight = 0.5) # Węższa i dłuższa legenda
+  ) +
+  theme_minimal() + # Minimalistyczny styl
+  theme(
+    legend.position = "bottom", # Umieszczenie legendy poniżej mapy
+    legend.title = element_text(size = 10), # Mniejsza czcionka tytułu legendy
+    legend.text = element_text(size = 8), # Mniejsza czcionka w legendzie
+    plot.title = element_text(size = 14), # Tytuł mapy
+    plot.subtitle = element_text(size = 10) # Podtytuł mapy
+  ) +
+  labs(
+    title = "Rozkład użytkowników Duolingo według krajów",
+    caption = "Źródło: Dane Duolingo"
+  )
+```
+W danych ankietowych zanotowano aktywność użytkowników z 10. krajów:
+```{r}
+print(unikalne_kraje)
+```
+Z danych wynika, że największa liczba użytkowników pochodzi z Francji i Meksyku, co wskazuje na ich silną obecność na rynku aplikacji edukacyjnych. Oba te kraje, ze względu na swoje rozmiary, liczbę ludności oraz popularność języka hiszpańskiego w Meksyku i francuskiego we Francji, stanowią naturalne rynki dla aplikacji uczącej języków obcych.
+Dalsza analiza rozkładu użytkowników na mapie pokazuje, że Duolingo cieszy się także dużym zainteresowaniem w takich krajach jak Japonia, Rosja czy Niemcy. Zjawisko to może świadczyć o szerokim zasięgu aplikacji na różnych kontynentach, obejmujących zarówno regiony rozwinięte, jak i wschodzące rynki.
+Powyższe obserwacje mogą sugerować, że Duolingo dostosowuje swoje funkcje i podejście do specyfiki każdego kraju, co pozwala na utrzymanie dużej bazy użytkowników na całym świecie.
+
+# Profil odbiorców aplikacji
+## Wiek i płeć
+Patrząc na 
+## Status zatrudnienia
+## 
+
+# Dynamika rozwoju użytkownika 
+##  
+## Kraje anglojęzyczne 
+
+# Źródła
+[1] https://github.com/MatthewWolff/DuolingoAnalysis.git
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<!-- Statystyki opisowe zmiennych liczbowych -->
 
 
 ```{r}
@@ -179,13 +360,13 @@ ggplot(duolingo_data, aes(x = n_active_days)) +
 
 
 
-## Wczytanie Danych
+<!-- ## Wczytanie Danych -->
 
 
 
 ```{r}
 # Wyświetlenie typów kolumn
-sapply(duolingo_data, class)
+# sapply(duolingo_data, class)
 
 
 ```
@@ -195,10 +376,10 @@ Zbiór danych Duolingo zawiera 29 zmiennych opisujących profile użytkowników 
 
 ```{r}
 # Zamiana wartości "No Response" na NA we wszystkich kolumnach
-duolingo_data[duolingo_data == "No Response"] <- NA
+# duolingo_data[duolingo_data == "No Response"] <- NA
 
 # Sprawdzenie, ile wartości zostało zamienionych
-summary(duolingo_data)
+# summary(duolingo_data)
 
 ```
 
@@ -220,10 +401,10 @@ unikalne_kraje <- duolingo_data %>%
 
 # Słownik do mapowania kodów krajów na pełne nazwy (ISO3 -> pełne nazwy)
 slownik <- c(
-  "JP" = "Japan", "RU" = "Russian Federation", "CO" = "Colombia", 
+  "JP" = "Japan", "RU" = "Russia", "CO" = "Colombia", 
   "TW" = "Taiwan", "GB" = "United Kingdom", "BR" = "Brazil", 
   "MX" = "Mexico", "DE" = "Germany", "FR" = "France", 
-  "US" = "United States", "PL" = "Poland"
+  "US" = "United States of America", "PL" = "Poland"
 )
 
 # Użycie słownika do zamiany kodów na pełne nazwy
@@ -245,11 +426,11 @@ map_data <- world %>%
 library(ggplot2)
 
 ggplot(data = map_data) +
-  geom_sf(fill = "white", color = "gray90", size = 0.2) + # Tło mapy i cienkie granice
-  geom_sf(aes(fill = users), color = "black", size = 0.3) + # Krajowe granice i kolory
+  geom_sf(fill = "white", color = "gray90", size = 0.1) + # Tło mapy i cienkie granice
+  geom_sf(aes(fill = users), color = "gray30", size = 0.1) + # Krajowe granice i kolory
   scale_fill_gradient(
     name = "Liczba użytkowników", # Nazwa legendy
-    low = "pink", high = "red", na.value = "gray80", # Gradient od różowego do czerwonego
+    low = "pink", high = "blue", na.value = "gray95", # Gradient od różowego do czerwonego
     guide = guide_colorbar(barwidth = 15, barheight = 0.5) # Węższa i dłuższa legenda
   ) +
   theme_minimal() + # Minimalistyczny styl
@@ -475,8 +656,6 @@ ggplot(data = duolingo_data, aes(x = annual_income, fill = duolingo_subscriber))
 ```
 
 
-
-
 ```{r}
 # Instalacja i załadowanie bibliotek
 if (!requireNamespace("ggplot2", quietly = TRUE)) install.packages("ggplot2")
@@ -517,19 +696,14 @@ ggplot(duolingo_data, aes(x = duolingo_subscriber, y = n_active_days, fill = duo
 ```
 ```{r}
 # Test t-Studenta
-t_test_result <- t.test(n_active_days ~ duolingo_subscriber, data = duolingo_data)
-print(t_test_result)
+# t_test_result <- t.test(n_active_days ~ duolingo_subscriber, data = duolingo_data)
+# print(t_test_result)
 # Test Wilcoxona
-wilcox_test_result <- wilcox.test(n_active_days ~ duolingo_subscriber, data = duolingo_data)
-print(wilcox_test_result)
+# wilcox_test_result <- wilcox.test(n_active_days ~ duolingo_subscriber, data = duolingo_data)
+# print(wilcox_test_result)
 
 
 ```
-
-
-
-
-
 
 ```{r}
 # Średnia liczba aktywnych dni w grupach subskrypcyjnych
@@ -545,25 +719,8 @@ ggplot(duolingo_data, aes(x = duolingo_subscriber, y = n_active_days, fill = duo
 
 ```
 
-
-
-
-
-
-
-
-
-
-
-
->>>>>>> 06e89856a23bde759f6144132837b905675c26c4
-
-
 Autor nie zamieścił informacji o licencji na jakiej udostępniono dane jednak zostaną one użyte jedynie do wykonania analizy funkcjonalenj w poniższej pracy. 
 Znalezione dane zostały zebrane za pomocą ankiety przeprowadzonej przez Duolingo, które miałe miejsce od 1 sierpnia do 5 listopada 2018 roku.  
-
-
-
 
 ```{r}
 #| include: false # wylaczenie wynikow 
@@ -635,8 +792,6 @@ ggplot(popularity_by_year_country, aes(x = as.numeric(start_year), y = user_coun
   scale_x_continuous(breaks = as.numeric(unique(popularity_by_year_country$start_year)))
 ```
 
-```         
-```
 
 ```{r}
 # Wczytanie potrzebnych bibliotek
@@ -666,66 +821,6 @@ ggplot(platform_usage, aes(x = reorder(duolingo_platform, -user_count), y = user
 
 ```
 
-## Kto sięga po aplikację?
-```{r}
-# Zakładamy, że dane zostały wcześniej załadowane jako "duolingo_data"
-# Plik CSV został wczytany, np.: duolingo_data <- read.csv("duolingo_dataset.csv")
-
-# Wyodrębnienie unikalnych krajów
-unikalne_kraje <- duolingo_data %>%
-  select(country) %>%
-  distinct()
-
-# Słownik do mapowania kodów krajów na pełne nazwy (ISO3 -> pełne nazwy)
-slownik <- c(
-  "JP" = "Japan", "RU" = "Russian Federation", "CO" = "Colombia", 
-  "TW" = "Taiwan", "GB" = "United Kingdom", "BR" = "Brazil", 
-  "MX" = "Mexico", "DE" = "Germany", "FR" = "France", 
-  "US" = "United States", "PL" = "Poland"
-)
-
-# Użycie słownika do zamiany kodów na pełne nazwy
-unikalne_kraje$country_full <- slownik[unikalne_kraje$country]
-
-# Agregacja danych dla liczby użytkowników według krajów
-dane_kraje <- duolingo_data %>%
-  group_by(country) %>%
-  summarise(users = n()) %>% # Liczba użytkowników w każdym kraju
-  mutate(country_full = slownik[country]) # Dodanie pełnych nazw krajów
-
-world <- ne_countries(scale = "small", returnclass = "sf")
-
-# Połączenie danych użytkowników z danymi o krajach
-map_data <- world %>%
-  left_join(dane_kraje, by = c("name" = "country_full")) # Dopasowanie po pełnych nazwach krajów
-
-# Tworzenie wykresu mapy
-library(ggplot2)
-
-ggplot(data = map_data) +
-  geom_sf(fill = "white", color = "gray90", size = 0.2) + # Tło mapy i cienkie granice
-  geom_sf(aes(fill = users), color = "black", size = 0.3) + # Krajowe granice i kolory
-  scale_fill_gradient(
-    name = "Liczba użytkowników", # Nazwa legendy
-    low = "pink", high = "red", na.value = "gray80", # Gradient od różowego do czerwonego
-    guide = guide_colorbar(barwidth = 15, barheight = 0.5) # Węższa i dłuższa legenda
-  ) +
-  theme_minimal() + # Minimalistyczny styl
-  theme(
-    legend.position = "bottom", # Umieszczenie legendy poniżej mapy
-    legend.title = element_text(size = 10), # Mniejsza czcionka tytułu legendy
-    legend.text = element_text(size = 8), # Mniejsza czcionka w legendzie
-    plot.title = element_text(size = 14, face = "bold"), # Tytuł mapy
-    plot.subtitle = element_text(size = 10) # Podtytuł mapy
-  ) +
-  labs(
-    title = "Rozkład użytkowników Duolingo według krajów",
-    subtitle = "Kolor przedstawia liczbę użytkowników w danym kraju",
-    caption = "Źródło: Dane Duolingo"
-  )
-
-```
-
 ```{r}
 unikalne_kraje <- duolingo_data %>% 
   select(country) %>% 
@@ -743,49 +838,7 @@ unikalne_kraje$country <- kraje_z_nazwami
 print(unikalne_kraje)
 
 ```
-```{r}
 
-dane <- data.frame(
-  country = c("US", "FR", "DE", "PL", "GB"),
-  users = c(500, 300, 200, 150, 250) # liczba użytkowników w poszczególnych krajach
-)
-
-# Słownik do mapowania kodów krajów na pełne nazwy (ISO3 wymagane przez rnaturalearth)
-slownik <- c("US" = "United States", "FR" = "France", "DE" = "Germany", 
-             "PL" = "Poland", "GB" = "United Kingdom")
-dane$country_full <- slownik[dane$country]
-
-# Wczytanie danych geograficznych o granicach państw
-world <- ne_countries(scale = "medium", returnclass = "sf")
-
-# Połączenie danych użytkowników z danymi o krajach
-map_data <- world %>%
-  left_join(dane, by = c("name" = "country_full")) # Dopasowanie po nazwach krajów
-
-# Tworzenie wykresu mapy
-ggplot(data = map_data) +
-  geom_sf(fill = "white", color = "gray95", size = 0) + # Tło mapy i cienkie granice
-  geom_sf(aes(fill = users), color = "gray50", size = 0.2) + # Krajowe granice i kolory
-  scale_fill_gradient(
-    name = "Liczba użytkowników", # Nazwa legendy
-    low = "pink", high = "red", na.value = "gray95", # Gradient od różowego do czerwonego
-    guide = guide_colorbar(barwidth = 10, barheight = 0.5) # Węższa i dłuższa legenda
-  ) +
-  theme_minimal() + # Minimalistyczny styl
-  theme(
-    legend.position = "bottom", # Umieszczenie legendy poniżej mapy
-    legend.title = element_text(size = 10), # Mniejsza czcionka tytułu legendy
-    legend.text = element_text(size = 8), # Mniejsza czcionka w legendzie
-    plot.title = element_text(size = 14, face = "bold"), # Tytuł mapy
-    plot.subtitle = element_text(size = 10) # Podtytuł mapy
-  ) +
-  labs(
-    title = "Rozkład użytkowników Duolingo według krajów",
-    subtitle = "Kolor przedstawia liczbę użytkowników w danym kraju",
-    caption = "Źródło: Dane Duolingo"
-  )
-
-```
 
 ```{r}
 # Czyszczenie danych - usunięcie "no response" i zastąpienie ich NA
